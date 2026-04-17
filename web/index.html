@@ -1,345 +1,826 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ESP32 Alarm Clock Preset Console</title>
-  <style>
-    :root {
-      color-scheme: dark;
-      --bg: #091019;
-      --panel: rgba(14, 20, 32, 0.9);
-      --panel-border: #233147;
-      --text: #edf4ff;
-      --muted: #8ea1bf;
-      --accent: #3ac1ff;
-    }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Alarm Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  /* ─── Tokens ─────────────────────────────────────────────── */
+  :root {
+    --cream:   #F7F4EF;
+    --paper:   #EFECE5;
+    --sand:    #E2DDD4;
+    --clay:    #C9C0B0;
+    --ink:     #1C1917;
+    --ink-2:   #44403C;
+    --ink-3:   #78716C;
+    --accent:  #3D3530;
+    --warm-w:  #FDFBF8;
 
-    * {
-      box-sizing: border-box;
-    }
+    --radius:  14px;
+    --card-w:  300px;
+    --trans:   cubic-bezier(.4,0,.2,1);
+  }
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: "Segoe UI", sans-serif;
-      background:
-        radial-gradient(circle at top left, rgba(58, 193, 255, 0.18), transparent 26%),
-        radial-gradient(circle at bottom right, rgba(255, 84, 112, 0.18), transparent 24%),
-        linear-gradient(180deg, #07101a 0%, #05070c 100%);
-      color: var(--text);
-      padding: 24px;
-    }
+  /* ─── Reset ──────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
 
-    .shell {
-      max-width: 1120px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: minmax(320px, 380px) minmax(360px, 1fr);
-      gap: 20px;
-    }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
 
-    .panel {
-      background: var(--panel);
-      border: 1px solid var(--panel-border);
-      border-radius: 22px;
-      padding: 22px;
-      backdrop-filter: blur(14px);
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
-    }
+  /* ─── Nav ────────────────────────────────────────────────── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 40px;
+    height: 64px;
+    background: rgba(247,244,239,.88);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--sand);
+  }
+  .nav-brand {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.2rem;
+    letter-spacing: -.01em;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .nav-brand em { font-style: italic; color: var(--ink-3); }
+  .nav-pill {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--ink);
+    color: var(--cream);
+    border: none; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: .78rem; font-weight: 500;
+    padding: 8px 16px; border-radius: 99px;
+    letter-spacing: .03em; text-transform: uppercase;
+    transition: opacity .2s;
+  }
+  .nav-pill:hover { opacity: .75; }
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #6ECC6E;
+    box-shadow: 0 0 0 2px rgba(110,204,110,.3);
+  }
+  .dot.off { background: var(--clay); box-shadow: none; }
 
-    h1,
-    h2,
-    h3,
-    p {
-      margin-top: 0;
-    }
+  /* ─── Hero ───────────────────────────────────────────────── */
+  .hero {
+    padding: 140px 40px 40px;
+    max-width: 1200px; margin: 0 auto;
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 24px;
+  }
+  .hero-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2.4rem, 5vw, 3.8rem);
+    line-height: 1.05;
+    letter-spacing: -.03em;
+    color: var(--ink);
+    max-width: 560px;
+  }
+  .hero-title em { font-style: italic; color: var(--ink-3); }
+  .hero-sub {
+    font-size: .85rem; font-weight: 300;
+    color: var(--ink-3); line-height: 1.7;
+    max-width: 260px; flex-shrink: 0;
+  }
+  .hero-sub strong { font-weight: 500; color: var(--ink-2); }
 
-    h1 {
-      font-size: 1.9rem;
-      margin-bottom: 12px;
-    }
+  /* ─── Divider ────────────────────────────────────────────── */
+  .section-head {
+    max-width: 1200px; margin: 0 auto;
+    padding: 32px 40px 20px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .section-label {
+    font-size: .7rem; font-weight: 500;
+    letter-spacing: .12em; text-transform: uppercase;
+    color: var(--ink-3); white-space: nowrap;
+  }
+  .section-line {
+    flex: 1; height: 1px; background: var(--sand);
+  }
 
-    .lede {
-      color: var(--muted);
-      line-height: 1.5;
-      margin-bottom: 20px;
-    }
+  /* ─── Card scroll rail ───────────────────────────────────── */
+  .rail-wrap {
+    padding: 0 40px 60px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .rail-wrap::-webkit-scrollbar { display: none; }
 
-    .field {
-      display: grid;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
+  .rail {
+    display: flex; gap: 20px;
+    width: max-content;
+    padding-bottom: 8px;
+  }
 
-    label {
-      font-size: 0.94rem;
-      color: var(--muted);
-    }
+  /* ─── Layout Card ────────────────────────────────────────── */
+  .layout-card {
+    width: var(--card-w);
+    background: var(--warm-w);
+    border: 1px solid var(--sand);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform .28s var(--trans), box-shadow .28s var(--trans), border-color .28s;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .layout-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 48px rgba(28,25,23,.1);
+    border-color: var(--clay);
+  }
+  .layout-card:active { transform: translateY(-2px); }
 
-    select,
-    button {
-      width: 100%;
-      border: 1px solid var(--panel-border);
-      border-radius: 14px;
-      background: #0f1826;
-      color: var(--text);
-      padding: 12px 14px;
-      font: inherit;
-    }
+  /* preview canvas area */
+  .card-preview {
+    width: 100%;
+    height: 180px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
 
-    button {
-      cursor: pointer;
-      transition: border-color 140ms ease, transform 140ms ease;
-    }
+  /* ── Minimal preview ── */
+  .preview-minimal {
+    background: #0a0a0a;
+    flex-direction: column; gap: 4px;
+  }
+  .preview-minimal .time-big {
+    font-family: 'DM Sans', monospace;
+    font-size: 2.6rem; font-weight: 300;
+    color: #E8E3DC; letter-spacing: -.02em;
+    line-height: 1;
+  }
+  .preview-minimal .date-small {
+    font-size: .65rem; font-weight: 400;
+    color: #5a5550; letter-spacing: .15em; text-transform: uppercase;
+  }
 
-    button:hover {
-      border-color: var(--accent);
-      transform: translateY(-1px);
-    }
+  /* ── Digital preview ── */
+  .preview-digital {
+    background: #0d1a12;
+    flex-direction: column; gap: 6px; align-items: flex-start;
+    padding: 0 28px;
+  }
+  .preview-digital .dig-time {
+    font-family: 'DM Serif Display', monospace;
+    font-size: 2.4rem; color: #00FF88;
+    line-height: 1; letter-spacing: -.01em;
+    text-shadow: 0 0 20px rgba(0,255,136,.35);
+  }
+  .preview-digital .dig-bar {
+    width: 100%; height: 1px; background: rgba(0,255,136,.2);
+  }
+  .preview-digital .dig-meta {
+    font-size: .62rem; font-weight: 300;
+    color: rgba(0,255,136,.5); letter-spacing: .1em; text-transform: uppercase;
+  }
 
-    .toolbar {
-      display: grid;
-      gap: 10px;
-      margin-top: 12px;
-    }
+  /* ── Retro Pixel preview ── */
+  .preview-retro {
+    background: #1a0a2e;
+    flex-direction: column; gap: 4px;
+    image-rendering: pixelated;
+  }
+  .preview-retro .retro-time {
+    font-family: 'Courier New', monospace;
+    font-size: 2rem; font-weight: 700;
+    color: #FF6BFF;
+    text-shadow: 2px 2px 0 #7B00FF, 0 0 30px rgba(255,107,255,.5);
+    letter-spacing: .1em;
+  }
+  .preview-retro .retro-scanline {
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 3px,
+      rgba(0,0,0,.12) 3px, rgba(0,0,0,.12) 4px
+    );
+    pointer-events: none;
+  }
+  .preview-retro .retro-sub {
+    font-size: .6rem; font-weight: 700;
+    color: #FF6BFF; opacity: .6;
+    letter-spacing: .25em; text-transform: uppercase;
+  }
 
-    .status {
-      margin-top: 14px;
-      min-height: 1.5em;
-      color: var(--accent);
-      font-weight: 600;
-    }
+  /* card footer */
+  .card-body {
+    padding: 16px 20px 18px;
+    border-top: 1px solid var(--sand);
+  }
+  .card-name {
+    font-size: .9rem; font-weight: 500;
+    color: var(--ink); letter-spacing: -.01em;
+    margin-bottom: 4px;
+  }
+  .card-desc {
+    font-size: .75rem; font-weight: 300;
+    color: var(--ink-3); line-height: 1.5;
+  }
+  .card-cta {
+    margin-top: 14px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card-tag {
+    font-size: .65rem; font-weight: 500;
+    letter-spacing: .08em; text-transform: uppercase;
+    color: var(--clay);
+  }
+  .card-btn {
+    font-size: .72rem; font-weight: 500;
+    color: var(--ink); text-decoration: none;
+    display: flex; align-items: center; gap: 5px;
+    opacity: .6; transition: opacity .2s;
+  }
+  .layout-card:hover .card-btn { opacity: 1; }
+  .card-btn svg { transition: transform .2s; }
+  .layout-card:hover .card-btn svg { transform: translateX(3px); }
 
-    .notes {
-      margin-top: 20px;
-      color: var(--muted);
-      line-height: 1.45;
-      font-size: 0.95rem;
-    }
+  /* ─── Modal overlay ──────────────────────────────────────── */
+  .overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(28,25,23,.45);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .3s var(--trans);
+  }
+  .overlay.active { opacity: 1; pointer-events: all; }
 
-    .preview-wrap {
-      display: grid;
-      gap: 16px;
-    }
+  .modal {
+    background: var(--warm-w);
+    border: 1px solid var(--sand);
+    border-radius: 20px;
+    width: 100%; max-width: 560px;
+    max-height: 90vh; overflow-y: auto;
+    transform: translateY(24px) scale(.97);
+    transition: transform .35s var(--trans);
+    scrollbar-width: none;
+  }
+  .modal::-webkit-scrollbar { display: none; }
+  .overlay.active .modal { transform: none; }
 
-    .preview-surface {
-      display: grid;
-      place-items: center;
-      min-height: 520px;
-      border-radius: 20px;
-      background: linear-gradient(180deg, #0d1521 0%, #090d15 100%);
-      border: 1px solid var(--panel-border);
-      padding: 24px;
-    }
+  .modal-top {
+    padding: 28px 28px 0;
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  }
+  .modal-preview-strip {
+    width: 100%; height: 120px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 20px 28px 0;
+    width: calc(100% - 56px);
+    transition: background .4s;
+  }
+  /* clones of preview styles for modal strip */
+  .strip-minimal { background: #0a0a0a; flex-direction: column; gap: 4px; display:flex; align-items:center; justify-content:center; }
+  .strip-digital { background: #0d1a12; flex-direction: column; gap: 6px; display:flex; align-items:flex-start; justify-content:center; padding: 0 24px; }
+  .strip-retro   { background: #1a0a2e; flex-direction: column; gap: 4px; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
 
-    .preview-device {
-      width: min(100%, 700px);
-      aspect-ratio: 4 / 3;
-      border-radius: 28px;
-      padding: 18px;
-      background: #141923;
-      box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.06),
-        0 18px 40px rgba(0, 0, 0, 0.35);
-    }
+  .modal-label { font-size: .7rem; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+  .modal-title { font-family: 'DM Serif Display', serif; font-size: 1.55rem; letter-spacing: -.02em; color: var(--ink); margin-top: 4px; }
+  .modal-close {
+    flex-shrink: 0;
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--sand); border-radius: 50%;
+    background: none; cursor: pointer; color: var(--ink-3);
+    transition: background .2s, color .2s;
+  }
+  .modal-close:hover { background: var(--sand); color: var(--ink); }
 
-    .preview-screen {
-      width: 100%;
-      height: 100%;
-      border-radius: 18px;
-      background: var(--preview-bg, #000);
-      color: var(--preview-primary, #fff);
-      padding: 18px;
-      border: 3px solid var(--preview-border, #344050);
-      display: grid;
-      gap: 14px;
-    }
+  .modal-body { padding: 24px 28px 28px; }
 
-    .preview-screen.retro {
-      box-shadow: inset 0 0 0 2px var(--preview-accent, #fff);
-    }
+  /* option group */
+  .opt-group { margin-bottom: 24px; }
+  .opt-label {
+    font-size: .7rem; font-weight: 500;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: var(--ink-3); margin-bottom: 10px; display: block;
+  }
+  .opt-grid {
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .opt-chip {
+    padding: 8px 16px;
+    border: 1px solid var(--sand);
+    border-radius: 99px;
+    background: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: .8rem; font-weight: 400;
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: background .18s, border-color .18s, color .18s;
+  }
+  .opt-chip:hover { background: var(--paper); border-color: var(--clay); }
+  .opt-chip.selected {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--cream);
+  }
 
-    .preview-header {
-      background: var(--preview-surface, #111);
-      color: var(--preview-accent, #fff);
-      border: 1px solid var(--preview-border, #444);
-      border-radius: 12px;
-      min-height: 40px;
-      display: grid;
-      place-items: center;
-      font-size: 0.88rem;
-      font-weight: 700;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-    }
+  /* theme swatches */
+  .swatch-row { display: flex; gap: 10px; }
+  .swatch {
+    flex: 1;
+    height: 52px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform .2s, border-color .2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .swatch:hover { transform: scale(1.04); }
+  .swatch.selected { border-color: var(--ink); }
+  .swatch-label {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 4px 8px;
+    font-size: .6rem; font-weight: 500;
+    letter-spacing: .05em; text-transform: uppercase;
+    text-align: center;
+  }
 
-    .preview-main {
-      display: grid;
-      gap: 12px;
-      flex: 1;
-      min-height: 0;
-    }
+  .swatch-oled   { background: linear-gradient(135deg, #0a0a0a 60%, #1a1a1a); }
+  .swatch-oled .swatch-label { color: #5a5550; }
+  .swatch-neon   { background: linear-gradient(135deg, #0d1a12 60%, #0a2215); }
+  .swatch-neon .swatch-label { color: #00aa55; }
+  .swatch-retro  { background: linear-gradient(135deg, #1a0a2e 60%, #2d0a4e); }
+  .swatch-retro .swatch-label { color: #aa55aa; }
 
-    .preview-main.digital {
-      grid-template-columns: 1fr 92px;
-    }
+  /* footer buttons */
+  .modal-footer {
+    padding: 0 28px 28px;
+    display: flex; gap: 10px; align-items: center;
+  }
+  .btn-primary {
+    flex: 1;
+    padding: 14px 20px;
+    background: var(--ink);
+    color: var(--cream);
+    border: none; border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: .85rem; font-weight: 500;
+    cursor: pointer; letter-spacing: .01em;
+    transition: opacity .2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-primary:hover { opacity: .78; }
+  .btn-primary:disabled { opacity: .35; cursor: default; }
+  .btn-secondary {
+    padding: 14px 18px;
+    background: none;
+    color: var(--ink-2);
+    border: 1px solid var(--sand); border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: .85rem; font-weight: 400;
+    cursor: pointer;
+    transition: background .2s, border-color .2s;
+  }
+  .btn-secondary:hover { background: var(--paper); border-color: var(--clay); }
 
-    .preview-card {
-      border-radius: 16px;
-      border: 1px solid var(--preview-border, #444);
-      background: var(--preview-surface, #111);
-      display: grid;
-      place-items: center;
-      padding: 12px;
-      min-height: 0;
-    }
+  /* status bar */
+  .status-bar {
+    margin: 0 28px 20px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: .78rem; font-weight: 400;
+    display: none; align-items: center; gap: 10px;
+    line-height: 1.4;
+  }
+  .status-bar.show { display: flex; }
+  .status-bar.info  { background: #F0EDE8; color: var(--ink-2); border: 1px solid var(--sand); }
+  .status-bar.ok    { background: #EAF5EA; color: #2d6b2d;     border: 1px solid #c8e6c8; }
+  .status-bar.error { background: #FBF0EE; color: #8b2c2c;     border: 1px solid #f0c8c8; }
 
-    .preview-clock {
-      font-size: clamp(2.6rem, 8vw, 5.4rem);
-      letter-spacing: 0.08em;
-      font-weight: 700;
-    }
+  /* spinner */
+  .spin {
+    width: 16px; height: 16px; flex-shrink: 0;
+    border: 2px solid currentColor; border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
-    .preview-clock.retro {
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-    }
+  /* ─── Footer ─────────────────────────────────────────────── */
+  footer {
+    border-top: 1px solid var(--sand);
+    padding: 24px 40px;
+    display: flex; align-items: center; justify-content: space-between;
+    max-width: 1200px; margin: 0 auto;
+  }
+  .footer-note {
+    font-size: .75rem; font-weight: 300; color: var(--ink-3);
+  }
+  .footer-note a { color: var(--ink-2); }
 
-    .preview-secondary {
-      font-size: clamp(1rem, 2.2vw, 1.7rem);
-      color: var(--preview-accent, #fff);
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-    }
-
-    .preview-date {
-      color: var(--preview-secondary, #cfd8e3);
-      font-size: clamp(0.95rem, 1.8vw, 1.2rem);
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-    }
-
-    .preview-meta {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .meta-card {
-      border: 1px solid var(--panel-border);
-      border-radius: 16px;
-      padding: 14px;
-      background: rgba(8, 13, 21, 0.72);
-    }
-
-    .meta-card h3 {
-      margin-bottom: 6px;
-      font-size: 0.95rem;
-    }
-
-    .meta-card p {
-      color: var(--muted);
-      margin-bottom: 0;
-      font-size: 0.92rem;
-      line-height: 1.45;
-    }
-
-    .log {
-      border-radius: 14px;
-      padding: 12px 14px;
-      min-height: 72px;
-      background: rgba(4, 8, 14, 0.82);
-      border: 1px solid var(--panel-border);
-      color: var(--muted);
-      font-family: "Consolas", monospace;
-      font-size: 0.9rem;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-    }
-
-    @media (max-width: 940px) {
-      .shell {
-        grid-template-columns: 1fr;
-      }
-
-      .preview-meta {
-        grid-template-columns: 1fr;
-      }
-
-      .preview-surface {
-        min-height: 420px;
-      }
-    }
-  </style>
+  /* ─── Responsive ─────────────────────────────────────────── */
+  @media (max-width: 640px) {
+    nav { padding: 0 20px; }
+    .hero { padding: 110px 20px 32px; flex-direction: column; align-items: flex-start; }
+    .hero-sub { max-width: 100%; }
+    .section-head { padding: 24px 20px 16px; }
+    .rail-wrap { padding: 0 20px 40px; }
+    footer { padding: 20px; flex-direction: column; gap: 8px; align-items: flex-start; }
+    .modal-top, .modal-body, .modal-footer { padding-left: 20px; padding-right: 20px; }
+    .modal-preview-strip { margin-left: 20px; margin-right: 20px; width: calc(100% - 40px); }
+    .status-bar { margin: 0 20px 16px; }
+  }
+</style>
 </head>
 <body>
-  <main class="shell">
-    <section class="panel">
-      <h1>ESP32 Alarm Clock Preset Console</h1>
-      <p class="lede">
-        Pick a layout, theme, and clock style. The browser only sends preset JSON.
-        The ESP32 renders the full UI live from the DS3231-backed clock state.
-      </p>
 
-      <div class="field">
-        <label for="layout-select">Layout</label>
-        <select id="layout-select"></select>
+<!-- ═══ NAV ═══ -->
+<nav>
+  <a class="nav-brand" href="#">Alarm<em>Studio</em></a>
+  <button class="nav-pill" id="nav-connect-btn" onclick="toggleConnect()">
+    <span class="dot off" id="nav-dot"></span>
+    <span id="nav-label">Connect device</span>
+  </button>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+  <h1 class="hero-title">Pick your<br/><em>clock face.</em></h1>
+  <p class="hero-sub">
+    Choose a layout below, customise the <strong>theme</strong> and <strong>clock style</strong>,
+    then push it straight to your ESP32 over USB.
+  </p>
+</section>
+
+<!-- ═══ LAYOUTS RAIL ═══ -->
+<div class="section-head">
+  <span class="section-label">Layouts</span>
+  <div class="section-line"></div>
+  <span class="section-label" style="opacity:.4">3 styles</span>
+</div>
+
+<div class="rail-wrap">
+  <div class="rail" id="layout-rail">
+
+    <!-- ── Card: Minimal ── -->
+    <article class="layout-card" onclick="openModal('minimal')" tabindex="0" role="button" aria-label="Configure Minimal layout">
+      <div class="card-preview preview-minimal">
+        <span class="time-big" id="clock-minimal">12:00</span>
+        <span class="date-small">Friday · April 2026</span>
       </div>
-
-      <div class="field">
-        <label for="theme-select">Theme</label>
-        <select id="theme-select"></select>
+      <div class="card-body">
+        <p class="card-name">Minimal</p>
+        <p class="card-desc">Just the time. No noise, clean numbers on a pitch-black canvas.</p>
+        <div class="card-cta">
+          <span class="card-tag">Layout 01</span>
+          <span class="card-btn">Configure <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+        </div>
       </div>
+    </article>
 
-      <div class="field">
-        <label for="clock-style-select">Clock Style</label>
-        <select id="clock-style-select"></select>
+    <!-- ── Card: Digital ── -->
+    <article class="layout-card" onclick="openModal('digital')" tabindex="0" role="button" aria-label="Configure Digital layout">
+      <div class="card-preview preview-digital">
+        <div class="dig-time" id="clock-digital">12:00</div>
+        <div class="dig-bar"></div>
+        <div class="dig-meta">Friday · April 2026 · uptime 00:00</div>
       </div>
-
-      <div class="toolbar">
-        <button id="connect-button" type="button">Connect ESP32</button>
-        <button id="apply-button" type="button">Apply Preset</button>
+      <div class="card-body">
+        <p class="card-name">Digital</p>
+        <p class="card-desc">Terminal energy. Green glow, status bar, subtle scanline accent.</p>
+        <div class="card-cta">
+          <span class="card-tag">Layout 02</span>
+          <span class="card-btn">Configure <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+        </div>
       </div>
+    </article>
 
-      <div id="status-label" class="status">Loading presets...</div>
-
-      <div class="notes">
-        <p>Hardware assumptions: ESP32-WROOM + CH340 USB bridge, ILI9341 on SPI, DS3231 on I2C, and LittleFS enabled in PlatformIO.</p>
+    <!-- ── Card: Retro Pixel ── -->
+    <article class="layout-card" onclick="openModal('retro_pixel')" tabindex="0" role="button" aria-label="Configure Retro Pixel layout">
+      <div class="card-preview preview-retro">
+        <div class="retro-scanline"></div>
+        <div class="retro-time" id="clock-retro">12:00</div>
+        <div class="retro-sub">Friday · Apr 2026</div>
       </div>
-
-      <div class="field">
-        <label>Device Log</label>
-        <div id="device-log" class="log">No device output yet.</div>
+      <div class="card-body">
+        <p class="card-name">Retro Pixel</p>
+        <p class="card-desc">Purple CRT nostalgia. Pixel-perfect with scanline overlay and glow.</p>
+        <div class="card-cta">
+          <span class="card-tag">Layout 03</span>
+          <span class="card-btn">Configure <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+        </div>
       </div>
-    </section>
+    </article>
 
-    <section class="panel preview-wrap">
-      <div class="preview-surface">
-        <div class="preview-device">
-          <div id="preview-root"></div>
+  </div>
+</div>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <span class="footer-note">ESP32 Alarm Clock · WebSerial required · Chrome / Edge only</span>
+  <span class="footer-note"><a href="https://github.com/jeremy341/esp32-alarm-clock-" target="_blank">GitHub ↗</a></span>
+</footer>
+
+<!-- ═══ MODAL ═══ -->
+<div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+
+    <div class="modal-top">
+      <div>
+        <span class="modal-label" id="modal-layout-label">Layout</span>
+        <h2 class="modal-title" id="modal-title">—</h2>
+      </div>
+      <button class="modal-close" onclick="closeModal()" aria-label="Close">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M18 6 6 18M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- live preview strip -->
+    <div id="modal-preview-strip" class="modal-preview-strip strip-minimal"></div>
+
+    <div class="modal-body">
+
+      <!-- Theme -->
+      <div class="opt-group">
+        <span class="opt-label">Theme</span>
+        <div class="swatch-row">
+          <div class="swatch swatch-oled selected" data-theme="oled_black" onclick="selectTheme(this)" title="OLED Black">
+            <span class="swatch-label">OLED Black</span>
+          </div>
+          <div class="swatch swatch-neon" data-theme="neon_blue" onclick="selectTheme(this)" title="Neon Blue">
+            <span class="swatch-label">Neon Blue</span>
+          </div>
+          <div class="swatch swatch-retro" data-theme="matrix_green" onclick="selectTheme(this)" title="Matrix">
+            <span class="swatch-label">Matrix</span>
+          </div>
         </div>
       </div>
 
-      <div class="preview-meta">
-        <article class="meta-card">
-          <h3 id="layout-title">Layout</h3>
-          <p id="layout-description"></p>
-        </article>
-        <article class="meta-card">
-          <h3 id="theme-title">Theme</h3>
-          <p id="theme-description"></p>
-        </article>
-        <article class="meta-card">
-          <h3 id="clock-style-title">Clock Style</h3>
-          <p id="clock-style-description"></p>
-        </article>
+      <!-- Clock style -->
+      <div class="opt-group">
+        <span class="opt-label">Clock style</span>
+        <div class="opt-grid" id="clock-style-chips">
+          <button class="opt-chip selected" data-style="clean_24h"     onclick="selectStyle(this)">Clean 24h</button>
+          <button class="opt-chip"          data-style="split_seconds"  onclick="selectStyle(this)">Split seconds</button>
+          <button class="opt-chip"          data-style="retro_12h"      onclick="selectStyle(this)">Retro 12h</button>
+        </div>
       </div>
-    </section>
-  </main>
 
-  <script type="module" src="./app.js"></script>
+    </div>
+
+    <!-- status -->
+    <div class="status-bar info" id="modal-status">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+      <span id="modal-status-text">Connect your ESP32 to push the preset.</span>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" id="push-btn" onclick="pushPreset()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v10M12 12l4-4M12 12l-4-4"/><path d="M3 15v4a2 2 0 002 2h14a2 2 0 002-2v-4"/></svg>
+        Push to device
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ─── State ──────────────────────────────────────────────────── */
+let connected = false;
+let port = null;
+let writer = null;
+let currentLayout = 'minimal';
+let currentTheme = 'oled_black';
+let currentStyle = 'clean_24h';
+
+const LAYOUT_META = {
+  minimal:     { label: 'Layout 01', title: 'Minimal',     stripClass: 'strip-minimal' },
+  digital:     { label: 'Layout 02', title: 'Digital',     stripClass: 'strip-digital' },
+  retro_pixel: { label: 'Layout 03', title: 'Retro Pixel', stripClass: 'strip-retro'   },
+};
+
+/* ─── Live clock ─────────────────────────────────────────────── */
+function tick() {
+  const now = new Date();
+  const hh  = String(now.getHours()).padStart(2,'0');
+  const mm  = String(now.getMinutes()).padStart(2,'0');
+  const ss  = String(now.getSeconds()).padStart(2,'0');
+  const t   = `${hh}:${mm}`;
+  const ts  = `${hh}:${mm}<span style="opacity:.4;font-size:.65em">:${ss}</span>`;
+
+  document.getElementById('clock-minimal').textContent = t;
+  document.getElementById('clock-digital').textContent = t;
+  document.getElementById('clock-retro').textContent   = t;
+
+  // modal strip
+  const strip = document.getElementById('modal-strip-time');
+  if (strip) strip.innerHTML = currentStyle === 'split_seconds' ? ts : t;
+}
+setInterval(tick, 1000);
+tick();
+
+/* ─── Modal ──────────────────────────────────────────────────── */
+function buildStripHTML(layout) {
+  const t = new Date();
+  const hh = String(t.getHours()).padStart(2,'0');
+  const mm = String(t.getMinutes()).padStart(2,'0');
+
+  if (layout === 'minimal') return `
+    <span style="font-family:'DM Sans',monospace;font-size:2rem;font-weight:300;color:#E8E3DC;letter-spacing:-.02em" id="modal-strip-time">${hh}:${mm}</span>
+    <span style="font-size:.6rem;color:#5a5550;letter-spacing:.15em;text-transform:uppercase;margin-top:6px">Friday · April 2026</span>`;
+
+  if (layout === 'digital') return `
+    <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">
+      <div style="font-family:'DM Serif Display',serif;font-size:1.9rem;color:#00FF88;text-shadow:0 0 16px rgba(0,255,136,.4)" id="modal-strip-time">${hh}:${mm}</div>
+      <div style="width:120px;height:1px;background:rgba(0,255,136,.2)"></div>
+      <div style="font-size:.6rem;color:rgba(0,255,136,.5);letter-spacing:.1em;text-transform:uppercase">Friday · April 2026</div>
+    </div>`;
+
+  return `
+    <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.15) 3px,rgba(0,0,0,.15) 4px);pointer-events:none"></div>
+    <div style="font-family:'Courier New',monospace;font-size:1.8rem;font-weight:700;color:#FF6BFF;text-shadow:2px 2px 0 #7B00FF,0 0 24px rgba(255,107,255,.5)" id="modal-strip-time">${hh}:${mm}</div>
+    <div style="font-size:.58rem;font-weight:700;color:#FF6BFF;opacity:.6;letter-spacing:.22em;text-transform:uppercase;margin-top:4px">Friday · Apr 2026</div>`;
+}
+
+function openModal(layout) {
+  currentLayout = layout;
+  const meta = LAYOUT_META[layout];
+
+  document.getElementById('modal-layout-label').textContent = meta.label;
+  document.getElementById('modal-title').textContent        = meta.title;
+
+  const strip = document.getElementById('modal-preview-strip');
+  strip.className = `modal-preview-strip ${meta.stripClass}`;
+  strip.innerHTML = buildStripHTML(layout);
+
+  // reset selections
+  document.querySelectorAll('.swatch').forEach(s => s.classList.toggle('selected', s.dataset.theme === currentTheme));
+  document.querySelectorAll('.opt-chip').forEach(c => c.classList.toggle('selected', c.dataset.style === currentStyle));
+
+  updateStatus();
+
+  document.getElementById('overlay').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('overlay').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('overlay')) closeModal();
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+/* ─── Option pickers ─────────────────────────────────────────── */
+function selectTheme(el) {
+  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+  currentTheme = el.dataset.theme;
+}
+
+function selectStyle(el) {
+  document.querySelectorAll('.opt-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  currentStyle = el.dataset.style;
+}
+
+/* ─── Status helper ──────────────────────────────────────────── */
+function setStatus(type, text, spinner = false) {
+  const bar  = document.getElementById('modal-status');
+  const span = document.getElementById('modal-status-text');
+  bar.className = `status-bar show ${type}`;
+  span.textContent = text;
+  const existingSpin = bar.querySelector('.spin');
+  if (existingSpin) existingSpin.remove();
+  if (spinner) {
+    const s = document.createElement('div');
+    s.className = 'spin';
+    bar.insertBefore(s, span);
+  }
+}
+
+function updateStatus() {
+  if (!connected) {
+    setStatus('info', 'Connect your ESP32 via USB to push this preset.');
+    document.getElementById('push-btn').disabled = true;
+  } else {
+    setStatus('ok', 'Device connected — ready to push.');
+    document.getElementById('push-btn').disabled = false;
+  }
+}
+
+/* ─── WebSerial ──────────────────────────────────────────────── */
+async function toggleConnect() {
+  if (!('serial' in navigator)) {
+    alert('WebSerial is not supported.\nUse Chrome or Edge and make sure you\'re on localhost or HTTPS.');
+    return;
+  }
+  if (connected) {
+    await disconnect();
+  } else {
+    await connectSerial();
+  }
+}
+
+async function connectSerial() {
+  try {
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 115200 });
+    writer = port.writable.getWriter();
+    connected = true;
+    document.getElementById('nav-dot').classList.remove('off');
+    document.getElementById('nav-label').textContent = 'Connected';
+    updateStatus();
+  } catch (err) {
+    if (err.name !== 'NotSelectedError') {
+      console.error(err);
+      alert('Could not open port: ' + err.message);
+    }
+  }
+}
+
+async function disconnect() {
+  try {
+    if (writer) { writer.releaseLock(); writer = null; }
+    if (port)   { await port.close();   port   = null; }
+  } catch (_) {}
+  connected = false;
+  document.getElementById('nav-dot').classList.add('off');
+  document.getElementById('nav-label').textContent = 'Connect device';
+  updateStatus();
+}
+
+/* ─── Packet helpers (matches firmware protocol.h) ──────────── */
+function crc16(data) {
+  let crc = 0xFFFF;
+  for (const b of data) {
+    crc ^= b;
+    for (let i = 0; i < 8; i++) {
+      crc = (crc & 1) ? ((crc >> 1) ^ 0xA001) : (crc >> 1);
+    }
+  }
+  return crc;
+}
+
+function buildPacket(cmd, seq, payload) {
+  const pkt = new Uint8Array(6 + payload.length + 2);
+  pkt[0] = 0xAA; pkt[1] = 0x55;
+  pkt[2] = cmd;  pkt[3] = seq & 0xFF;
+  pkt[4] = payload.length >> 8;
+  pkt[5] = payload.length & 0xFF;
+  pkt.set(payload, 6);
+  const crc = crc16(payload);
+  pkt[6 + payload.length]     = crc >> 8;
+  pkt[6 + payload.length + 1] = crc & 0xFF;
+  return pkt;
+}
+
+/* ─── Push preset ────────────────────────────────────────────── */
+async function pushPreset() {
+  if (!connected) { updateStatus(); return; }
+
+  const preset = {
+    layout:      currentLayout,
+    theme:       currentTheme,
+    clock_style: currentStyle,
+  };
+
+  const json    = JSON.stringify(preset);
+  const payload = new TextEncoder().encode(json);
+  const pkt     = buildPacket(0x01, 0, payload);
+
+  setStatus('info', 'Sending…', true);
+  document.getElementById('push-btn').disabled = true;
+
+  try {
+    await writer.write(pkt);
+    setStatus('ok', `Preset pushed — ${currentLayout} · ${currentTheme} · ${currentStyle}`);
+  } catch (err) {
+    setStatus('error', 'Transfer failed: ' + err.message);
+    await disconnect();
+  } finally {
+    document.getElementById('push-btn').disabled = false;
+  }
+}
+</script>
 </body>
 </html>
