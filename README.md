@@ -174,7 +174,7 @@ Payload is always a JSON string. CRC16/CCITT over payload bytes only.
 | CMD | Direction | Payload |
 |---|---|---|
 | `0x00` PING | PC→ESP | `{}` |
-| `0x01` PRESET | PC→ESP | `{"layout":"minimal","theme":"oled_black","clock_style":"clean_24h"}` |
+| `0x01` PRESET | PC→ESP | `{"layout":"minimal","theme":"oled_black","clockStyle":"clean_24h"}` |
 | `0x02` SET_TIME | PC→ESP | `{"year":2025,"month":4,"day":17,"hour":10,"minute":30,"second":0}` |
 | `0x03` SET_ALARM | PC→ESP | `{"hour":7,"minute":0,"enabled":true}` |
 | `0x80` ACK | ESP→PC | echoed SEQ byte |
@@ -187,7 +187,7 @@ Payload is always a JSON string. CRC16/CCITT over payload bytes only.
 Preset and alarm are persisted to LittleFS:
 
 ```
-/preset.json   {"layout":"minimal","theme":"oled_black","clock_style":"clean_24h"}
+/preset.json   {"layout":"minimal","theme":"oled_black","clockStyle":"clean_24h"}
 /alarm.json    {"hour":7,"minute":0,"enabled":false}
 ```
 
