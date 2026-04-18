@@ -7,11 +7,11 @@ namespace alarm_system {
 const char* modeLabel(Mode mode) {
   switch (mode) {
     case Mode::Weekdays:
-      return "Mon-Fri";
+      return "M - F";
     case Mode::Weekend:
-      return "Sat-Sun";
+      return "S - S";
     case Mode::Everyday:
-      return "Everyday";
+      return "Both";
     default:
       return "Unknown";
   }
@@ -20,9 +20,9 @@ const char* modeLabel(Mode mode) {
 const char* modeShortLabel(Mode mode) {
   switch (mode) {
     case Mode::Weekdays:
-      return "M-F";
+      return "M - F";
     case Mode::Weekend:
-      return "S-S";
+      return "S - S";
     case Mode::Everyday:
       return "Both";
     default:

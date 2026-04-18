@@ -115,15 +115,16 @@
   /* ─── Card scroll rail ───────────────────────────────────── */
   .rail-wrap {
     padding: 0 40px 60px;
-    overflow-x: auto;
-    scrollbar-width: none;
+    display: flex;
+    justify-content: center;
   }
-  .rail-wrap::-webkit-scrollbar { display: none; }
 
   .rail {
     display: flex; gap: 20px;
     width: max-content;
     padding-bottom: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
   /* ─── Layout Card ────────────────────────────────────────── */
@@ -149,12 +150,49 @@
   .card-preview {
     width: 100%;
     height: 180px;
-    display: flex; flex-direction: column;
-    align-items: flex-start; justify-content: flex-start;
     position: relative;
-    padding: 18px;
     overflow: hidden;
   }
+  .carousel-container {
+    display: flex;
+    width: 200%;
+    height: 100%;
+    transition: transform .4s var(--trans);
+  }
+  .card-preview.slide-2 .carousel-container {
+    transform: translateX(-50%);
+  }
+  .carousel-slide {
+    width: 50%;
+    height: 100%;
+    display: flex; flex-direction: column;
+    align-items: flex-start; justify-content: flex-start;
+    padding: 18px;
+    position: relative;
+  }
+  .carousel-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px; height: 28px;
+    border: none; border-radius: 50%;
+    background: rgba(255,255,255,.15);
+    color: #fff;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10;
+    transition: background .2s, opacity .2s;
+    opacity: 0;
+  }
+  .layout-card:hover .carousel-arrow { opacity: 1; }
+  .carousel-arrow:hover { background: rgba(255,255,255,.25); }
+  .arrow-left { left: 8px; }
+  .arrow-right { right: 8px; }
+  .card-preview:not(.slide-2) .arrow-left { display: none; }
+  .card-preview.slide-2 .arrow-right { display: none; }
+
+  @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+  .blink { animation: blink 1s infinite; }
 
   .preview-bottom {
     display: flex;
@@ -169,68 +207,6 @@
     font-size: .65rem; font-weight: 700;
     letter-spacing: .16em; text-transform: uppercase;
     color: rgba(255,255,255,.55);
-  }
-
-  .preview-toggle {
-    position: absolute;
-    right: 14px;
-    bottom: 14px;
-    width: 34px;
-    height: 34px;
-    border: none;
-    border-radius: 50%;
-    background: rgba(255,255,255,.08);
-    color: inherit;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: transform .2s ease, background .2s ease;
-  }
-
-  .preview-toggle:hover {
-    background: rgba(255,255,255,.14);
-  }
-
-  .card-preview.alarm-open .preview-toggle svg {
-    transform: rotate(180deg);
-  }
-
-  .alarm-panel {
-    position: absolute;
-    left: 14px;
-    right: 14px;
-    bottom: 54px;
-    padding: 10px 12px;
-    border-radius: 12px;
-    background: rgba(0, 0, 0, .72);
-    color: #f8f3e9;
-    font-size: .72rem;
-    line-height: 1.4;
-    display: none;
-    box-shadow: 0 12px 28px rgba(0,0,0,.36);
-    backdrop-filter: blur(6px);
-  }
-
-  .card-preview.alarm-open .alarm-panel {
-    display: block;
-  }
-
-  .alarm-title {
-    font-size: .82rem;
-    font-weight: 700;
-    margin-bottom: 6px;
-  }
-
-  .alarm-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 4px;
-  }
-
-  .alarm-row strong {
-    font-weight: 700;
   }
 
   /* ── Minimal preview ── */
@@ -437,12 +413,12 @@
     text-align: center;
   }
 
-  .swatch-oled   { background: linear-gradient(135deg, #0a0a0a 60%, #1a1a1a); }
-  .swatch-oled .swatch-label { color: #5a5550; }
-  .swatch-neon   { background: linear-gradient(135deg, #0d1a12 60%, #0a2215); }
-  .swatch-neon .swatch-label { color: #00aa55; }
-  .swatch-retro  { background: linear-gradient(135deg, #1a0a2e 60%, #2d0a4e); }
-  .swatch-retro .swatch-label { color: #aa55aa; }
+  .swatch-oled   { background: linear-gradient(135deg, #000000 60%, #0e1218); }
+  .swatch-oled .swatch-label { color: #829ab5; }
+  .swatch-neon   { background: linear-gradient(135deg, #050a19 60%, #0c1c38); }
+  .swatch-neon .swatch-label { color: #afdeff; }
+  .swatch-retro  { background: linear-gradient(135deg, #010702 60%, #09180a); }
+  .swatch-retro .swatch-label { color: #b4ffbe; }
 
   /* footer buttons */
   .modal-footer {
@@ -556,20 +532,22 @@
 
     <!-- ── Card: Minimal ── -->
     <article class="layout-card" onclick="openModal('minimal')" tabindex="0" role="button" aria-label="Configure Minimal layout">
-      <div class="card-preview preview-minimal">
-        <span class="time-big" id="clock-minimal">12:00</span>
-        <div class="preview-bottom">
-          <span class="date-small">Friday · April 2026</span>
-          <span class="preview-days">MON - FRI</span>
-        </div>
-        <button class="preview-toggle" onclick="toggleAlarmPreview(event, this)" aria-label="Toggle alarm preview">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-        </button>
-        <div class="alarm-panel">
-          <div class="alarm-title">Alarm Setup</div>
-          <div class="alarm-row"><span>Time:</span><strong class="alarm-time">07:30</strong></div>
-          <div class="alarm-row"><span>Days:</span><strong class="alarm-days">MON - FRI</strong></div>
-          <div class="alarm-row" style="opacity:.75;font-size:.72rem;">Press arrow to close</div>
+      <div class="card-preview">
+        <button class="carousel-arrow arrow-left" onclick="toggleCarousel(event, this)">‹</button>
+        <button class="carousel-arrow arrow-right" onclick="toggleCarousel(event, this)">›</button>
+        <div class="carousel-container">
+          <div class="carousel-slide preview-minimal">
+            <span class="time-big" id="clock-minimal">12:00</span>
+            <div class="preview-bottom">
+              <span class="date-small">Friday · April 2026</span>
+              <span class="preview-days">M - F</span>
+            </div>
+          </div>
+          <div class="carousel-slide preview-minimal" style="align-items:center; justify-content:center; text-align:center;">
+             <div style="font-size:0.8rem; opacity:0.8; margin-bottom:4px">Alarm Setup</div>
+             <div class="time-big" style="font-size:1.8rem"><span class="blink alarm-time-hh">07</span>:<span class="alarm-time-mm">30</span></div>
+             <div style="font-size:0.7rem; margin-top:8px" class="alarm-days">M - F</div>
+          </div>
         </div>
       </div>
       <div class="card-body">
@@ -584,20 +562,22 @@
 
     <!-- ── Card: Digital ── -->
     <article class="layout-card" onclick="openModal('digital')" tabindex="0" role="button" aria-label="Configure Digital layout">
-      <div class="card-preview preview-digital">
-        <div class="dig-time" id="clock-digital">12:00</div>
-        <div class="preview-bottom">
-          <span class="date-small">Friday · April 2026</span>
-          <span class="preview-days">MON - FRI</span>
-        </div>
-        <button class="preview-toggle" onclick="toggleAlarmPreview(event, this)" aria-label="Toggle alarm preview">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-        </button>
-        <div class="alarm-panel">
-          <div class="alarm-title">Alarm Setup</div>
-          <div class="alarm-row"><span>Time:</span><strong class="alarm-time">07:30</strong></div>
-          <div class="alarm-row"><span>Days:</span><strong class="alarm-days">MON - FRI</strong></div>
-          <div class="alarm-row" style="opacity:.75;font-size:.72rem;">Press arrow to close</div>
+      <div class="card-preview">
+        <button class="carousel-arrow arrow-left" onclick="toggleCarousel(event, this)">‹</button>
+        <button class="carousel-arrow arrow-right" onclick="toggleCarousel(event, this)">›</button>
+        <div class="carousel-container">
+          <div class="carousel-slide preview-digital">
+            <div class="dig-time" id="clock-digital">12:00</div>
+            <div class="preview-bottom">
+              <span class="date-small">Friday · April 2026</span>
+              <span class="preview-days">M - F</span>
+            </div>
+          </div>
+          <div class="carousel-slide preview-digital" style="align-items:center; justify-content:center; text-align:center;">
+             <div style="font-size:0.8rem; opacity:0.8; margin-bottom:4px; color:#00FF88;">Alarm Setup</div>
+             <div class="dig-time" style="font-size:1.8rem"><span class="blink alarm-time-hh">07</span>:<span class="alarm-time-mm">30</span></div>
+             <div style="font-size:0.7rem; margin-top:8px; color:#00FF88;" class="alarm-days">M - F</div>
+          </div>
         </div>
       </div>
       <div class="card-body">
@@ -612,21 +592,24 @@
 
     <!-- ── Card: Retro Pixel ── -->
     <article class="layout-card" onclick="openModal('retro_pixel')" tabindex="0" role="button" aria-label="Configure Retro Pixel layout">
-      <div class="card-preview preview-retro">
-        <div class="retro-scanline"></div>
-        <div class="retro-time" id="clock-retro">12:00</div>
-        <div class="preview-bottom">
-          <span class="date-small">Friday · Apr 2026</span>
-          <span class="preview-days">MON - FRI</span>
-        </div>
-        <button class="preview-toggle" onclick="toggleAlarmPreview(event, this)" aria-label="Toggle alarm preview">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-        </button>
-        <div class="alarm-panel">
-          <div class="alarm-title">Alarm Setup</div>
-          <div class="alarm-row"><span>Time:</span><strong class="alarm-time">07:30</strong></div>
-          <div class="alarm-row"><span>Days:</span><strong class="alarm-days">MON - FRI</strong></div>
-          <div class="alarm-row" style="opacity:.75;font-size:.72rem;">Press arrow to close</div>
+      <div class="card-preview">
+        <button class="carousel-arrow arrow-left" onclick="toggleCarousel(event, this)">‹</button>
+        <button class="carousel-arrow arrow-right" onclick="toggleCarousel(event, this)">›</button>
+        <div class="carousel-container">
+          <div class="carousel-slide preview-retro">
+            <div class="retro-scanline"></div>
+            <div class="retro-time" id="clock-retro">12:00</div>
+            <div class="preview-bottom">
+              <span class="date-small">Friday · Apr 2026</span>
+              <span class="preview-days">M - F</span>
+            </div>
+          </div>
+          <div class="carousel-slide preview-retro" style="align-items:center; justify-content:center; text-align:center;">
+             <div class="retro-scanline"></div>
+             <div style="font-size:0.8rem; opacity:0.8; margin-bottom:4px; color:#FF6BFF; position:relative;">Alarm Setup</div>
+             <div class="retro-time" style="font-size:1.8rem; position:relative;"><span class="blink alarm-time-hh">07</span>:<span class="alarm-time-mm">30</span></div>
+             <div style="font-size:0.7rem; margin-top:8px; color:#FF6BFF; position:relative;" class="alarm-days">M - F</div>
+          </div>
         </div>
       </div>
       <div class="card-body">
@@ -769,11 +752,12 @@ function monthLabel(date) {
 }
 
 function alarmDaysLabel(date) {
-  return date.getDay() >= 1 && date.getDay() <= 5 ? 'MON - FRI' : 'SAT - SUN';
+  return date.getDay() >= 1 && date.getDay() <= 5 ? 'M - F' : 'S - S';
 }
 
 function updateAlarmPreviewPanels(now, displayDays) {
-  document.querySelectorAll('.alarm-time').forEach(el => el.textContent = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`);
+  document.querySelectorAll('.alarm-time-hh').forEach(el => el.textContent = String(now.getHours()).padStart(2,'0'));
+  document.querySelectorAll('.alarm-time-mm').forEach(el => el.textContent = String(now.getMinutes()).padStart(2,'0'));
   document.querySelectorAll('.alarm-days').forEach(el => el.textContent = displayDays);
 }
 
@@ -835,12 +819,12 @@ function renderModalPreview() {
   strip.innerHTML = buildStripHTML(currentLayout, currentTheme);
 }
 
-function toggleAlarmPreview(event, button) {
+function toggleCarousel(event, button) {
   event.stopPropagation();
   event.preventDefault();
   const preview = button.closest('.card-preview');
   if (!preview) return;
-  preview.classList.toggle('alarm-open');
+  preview.classList.toggle('slide-2');
 }
 
 function openModal(layout) {

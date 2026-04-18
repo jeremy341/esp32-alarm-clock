@@ -74,6 +74,8 @@ void App::loop() {
 
     if (menuState_ == MenuState::Clock) {
       display_.updateClock(snapshot, false, &alarm_, alarmTriggered_);
+    } else {
+      renderAlarmMenu(snapshot);
     }
   }
 }
@@ -150,8 +152,21 @@ void App::renderAlarmMenu(const ClockSnapshot& snapshot) {
   char line2[32];
   char line3[32];
 
-  snprintf(line1, sizeof(line1), "Time: %02u:%02u", alarm_.hour, alarm_.minute);
-  snprintf(line2, sizeof(line2), "Days: %s", alarm_system::modeLabel(alarm_.mode));
+  const bool blinkOff = (snapshot.second % 2) != 0;
+
+  if (menuState_ == MenuState::SetAlarmHour && blinkOff) {
+    snprintf(line1, sizeof(line1), "Time:   :%02u", alarm_.minute);
+  } else if (menuState_ == MenuState::SetAlarmMinute && blinkOff) {
+    snprintf(line1, sizeof(line1), "Time: %02u:  ", alarm_.hour);
+  } else {
+    snprintf(line1, sizeof(line1), "Time: %02u:%02u", alarm_.hour, alarm_.minute);
+  }
+
+  if (menuState_ == MenuState::SetAlarmDays && blinkOff) {
+    snprintf(line2, sizeof(line2), "Days: ");
+  } else {
+    snprintf(line2, sizeof(line2), "Days: %s", alarm_system::modeLabel(alarm_.mode));
+  }
 
   if (menuState_ == MenuState::SetAlarmHour) {
     snprintf(line3, sizeof(line3), "Menu=Next  Up/Down=Hour");

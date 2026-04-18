@@ -70,23 +70,22 @@ void drawClockLayer(TFT_eSPI& tft,
   if (dateChanged && geometry.date.height > 0) {
     clearPanel(tft, geometry.date, palette.surface, palette.border);
 
-    if (model.showAlarmStatus) {
-      tft.setTextDatum(TL_DATUM);
-      tft.setTextFont(1);
-      tft.setTextColor(model.alarmRinging ? palette.accent : palette.secondary, palette.surface);
-      tft.drawString(model.alarmStatus,
-                     geometry.date.x + 8,
-                     geometry.date.y + 8);
-    }
-
     if (model.showDate) {
-      tft.setTextDatum(MC_DATUM);
+      tft.setTextDatum(ML_DATUM);
       tft.setTextFont(2);
       tft.setTextColor(palette.secondary, palette.surface);
-      const int16_t dateY = geometry.date.y + (model.showAlarmStatus ? 20 : (geometry.date.height / 2));
       tft.drawString(model.date,
-                     geometry.date.x + (geometry.date.width / 2),
-                     dateY);
+                     geometry.date.x + 12,
+                     geometry.date.y + (geometry.date.height / 2));
+    }
+
+    if (model.showAlarmStatus) {
+      tft.setTextDatum(MR_DATUM);
+      tft.setTextFont(2);
+      tft.setTextColor(model.alarmRinging ? palette.accent : palette.secondary, palette.surface);
+      tft.drawString(model.alarmStatus,
+                     geometry.date.x + geometry.date.width - 12,
+                     geometry.date.y + (geometry.date.height / 2));
     }
   }
 
