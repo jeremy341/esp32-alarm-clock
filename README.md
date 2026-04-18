@@ -10,10 +10,9 @@ Designed for learning embedded systems, UI development, and future hardware encl
 This project turns an ESP32 into a fully functional digital alarm clock with:
 
 - Precise timekeeping using DS3231 RTC
-- Optional WiFi NTP time synchronization
 - Graphical UI on ILI9341 TFT display
 - Button-based navigation system
-- Buzzer-based alarm system
+- Alarm scheduler with persistent settings
 - Modular and expandable firmware design
 - CAD-ready enclosure planning
 
@@ -26,8 +25,8 @@ This project turns an ESP32 into a fully functional digital alarm clock with:
 | MCU | ESP32-WROOM-32 |
 | Display | ILI9341 2.8" SPI TFT (320×240) |
 | RTC | DS3231 (I2C) |
-| Buzzer | Active / Passive buzzer |
-| Buttons | 3–4 tactile switches |
+| Buzzer | Not currently implemented in firmware |
+| Buttons | 3 tactile switches |
 | Power | 5V USB input (optional Li-ion system) |
 
 ---
@@ -40,10 +39,9 @@ This project turns an ESP32 into a fully functional digital alarm clock with:
 | SCK | 18 |
 | MOSI | 23 |
 | MISO | 19 |
-| CS | 5 |
+| CS | 15 |
 | DC | 2 |
 | RESET | 4 |
-| LED | 15 |
 
 ---
 
@@ -53,6 +51,8 @@ This project turns an ESP32 into a fully functional digital alarm clock with:
 | SDA | 21 |
 | SCL | 22 |
 
+> The RTC is initialized with `Wire.begin()` and uses the ESP32 default I2C pins.
+
 ---
 
 ### 🔘 Buttons
@@ -61,14 +61,8 @@ This project turns an ESP32 into a fully functional digital alarm clock with:
 | MODE | 32 |
 | UP | 33 |
 | DOWN | 27 |
-| SET | 14 |
 
----
-
-### 🔊 Buzzer
-| Signal | GPIO |
-|---|---|
-| CONTROL | 25 |
+> Buttons are read with `INPUT_PULLUP` and should be wired to GND.
 
 ---
 
@@ -96,31 +90,24 @@ Requires PlatformIO. All libraries are declared in `platformio.ini` and fetched 
 
 ```
 firmware/src/
-├── main.cpp          App controller — state machine, zero business logic
-├── display.cpp       ILI9341 renderer, 3 layouts, sprite-buffered
-├── rtc.cpp           DS3231 wrapper with compile-time software fallback
-├── storage.cpp       LittleFS read/write for preset + alarm JSON
-├── input.cpp         Debounced 4-button driver with hold detection
-├── buzzer.cpp        LEDC-based alarm pattern with auto-timeout + snooze
-├── serial_rx.cpp     Binary packet state machine (SOF · CRC16 · dispatch)
-└── preset.cpp        Preset/AlarmCfg struct helpers
-
-firmware/include/
-├── config.h          All pin assignments and tunables in one place
-├── protocol.h        Wire protocol constants (shared with web app)
-├── modules.h         Module interface declarations
-├── preset.h          Preset + AlarmCfg structs
-└── crc16.h           Inline CRC16/CCITT
+├── main.cpp                    App controller and main Arduino loop
+├── core/app.cpp                App state, event processing, alarm flow
+├── core/input.cpp              Debounced 3-button driver
+├── display/display.cpp         ILI9341 renderer and layout drawing
+├── serial/receiver.cpp         Binary packet parser and serial transport
+├── time/clock.cpp              DS3231 RTC wrapper and clock snapshot
+├── storage/config_store.cpp    LittleFS preset/alarm persistence
+├── storage/littlefs_manager.cpp LittleFS initialization
+├── ui/ui_engine.cpp            Layout/theme/clock-style resolution
 ```
 
 ### Button behaviour
 
-| Button | Short press | Long press (2 s) |
-|---|---|---|
-| MODE | Enter/exit menu | Force back to clock from anywhere |
-| UP | Menu up / increment / Snooze alarm | — |
-| DOWN | Menu down / decrement | — |
-| SET | Confirm selection | — |
+| Button | Short press |
+|---|---|
+| MODE | Enter/advance alarm menu |
+| UP | Increase value / move up |
+| DOWN | Decrease value / move down |
 
 ### Layouts
 

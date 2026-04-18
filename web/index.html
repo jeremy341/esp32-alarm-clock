@@ -729,7 +729,37 @@ const LAYOUT_META = {
   retro_pixel: { label: 'Layout 03', title: 'Retro Pixel', stripClass: 'strip-retro'   },
 };
 
-/* ─── Live clock ─────────────────────────────────────────────── */
+const THEME_PALETTES = {
+  oled_black: {
+    background: '#000000',
+    surface:    '#0e1218',
+    primary:    '#6df0ff',
+    secondary:  '#829ab5',
+    accent:     '#ff9f43',
+    muted:      '#343d4a',
+  },
+  neon_blue: {
+    background: '#050a19',
+    surface:    '#0c1c38',
+    primary:    '#3ac1ff',
+    secondary:  '#afdeff',
+    accent:     '#ff5470',
+    muted:      '#2c445c',
+  },
+  matrix_green: {
+    background: '#010702',
+    surface:    '#09180a',
+    primary:    '#73ff87',
+    secondary:  '#b4ffbe',
+    accent:     '#ffb64d',
+    muted:      '#203823',
+  },
+};
+
+function themePalette(themeId) {
+  return THEME_PALETTES[themeId] || THEME_PALETTES.oled_black;
+}
+
 function weekdayLabel(date) {
   return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()];
 }
@@ -772,26 +802,37 @@ setInterval(tick, 1000);
 tick();
 
 /* ─── Modal ──────────────────────────────────────────────────── */
-function buildStripHTML(layout) {
+function buildStripHTML(layout, themeId) {
+  const theme = themePalette(themeId);
   const t = new Date();
   const hh = String(t.getHours()).padStart(2,'0');
   const mm = String(t.getMinutes()).padStart(2,'0');
+  const dateText = `${weekdayLabel(t)} · ${monthLabel(t)} ${t.getDate()}`;
 
   if (layout === 'minimal') return `
-    <span style="font-family:'DM Sans',monospace;font-size:2rem;font-weight:300;color:#E8E3DC;letter-spacing:-.02em" id="modal-strip-time">${hh}:${mm}</span>
-    <span style="font-size:.6rem;color:#5a5550;letter-spacing:.15em;text-transform:uppercase;margin-top:6px">Friday · April 2026</span>`;
+    <span style="font-family:'DM Sans',monospace;font-size:2rem;font-weight:300;color:${theme.primary};letter-spacing:-.02em" id="modal-strip-time">${hh}:${mm}</span>
+    <span style="font-size:.6rem;color:${theme.secondary};letter-spacing:.15em;text-transform:uppercase;margin-top:6px">${dateText}</span>`;
 
   if (layout === 'digital') return `
     <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">
-      <div style="font-family:'DM Serif Display',serif;font-size:1.9rem;color:#00FF88;text-shadow:0 0 16px rgba(0,255,136,.4)" id="modal-strip-time">${hh}:${mm}</div>
-      <div style="width:120px;height:1px;background:rgba(0,255,136,.2)"></div>
-      <div style="font-size:.6rem;color:rgba(0,255,136,.5);letter-spacing:.1em;text-transform:uppercase">Friday · April 2026</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:1.9rem;color:${theme.accent};text-shadow:0 0 16px ${theme.accent}" id="modal-strip-time">${hh}:${mm}</div>
+      <div style="width:120px;height:1px;background:${theme.accent};opacity:.2"></div>
+      <div style="font-size:.6rem;color:${theme.secondary};letter-spacing:.1em;text-transform:uppercase">${dateText}</div>
     </div>`;
 
   return `
     <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.15) 3px,rgba(0,0,0,.15) 4px);pointer-events:none"></div>
-    <div style="font-family:'Courier New',monospace;font-size:1.8rem;font-weight:700;color:#FF6BFF;text-shadow:2px 2px 0 #7B00FF,0 0 24px rgba(255,107,255,.5)" id="modal-strip-time">${hh}:${mm}</div>
-    <div style="font-size:.58rem;font-weight:700;color:#FF6BFF;opacity:.6;letter-spacing:.22em;text-transform:uppercase;margin-top:4px">Friday · Apr 2026</div>`;
+    <div style="font-family:'Courier New',monospace;font-size:1.8rem;font-weight:700;color:${theme.primary};text-shadow:2px 2px 0 ${theme.muted},0 0 24px rgba(255,255,255,.18)" id="modal-strip-time">${hh}:${mm}</div>
+    <div style="font-size:.58rem;font-weight:700;color:${theme.primary};opacity:.6;letter-spacing:.22em;text-transform:uppercase;margin-top:4px">${dateText}</div>`;
+}
+
+function renderModalPreview() {
+  const meta = LAYOUT_META[currentLayout];
+  const strip = document.getElementById('modal-preview-strip');
+  const theme = themePalette(currentTheme);
+  strip.className = `modal-preview-strip ${meta.stripClass}`;
+  strip.style.background = theme.surface;
+  strip.innerHTML = buildStripHTML(currentLayout, currentTheme);
 }
 
 function toggleAlarmPreview(event, button) {
@@ -809,9 +850,7 @@ function openModal(layout) {
   document.getElementById('modal-layout-label').textContent = meta.label;
   document.getElementById('modal-title').textContent        = meta.title;
 
-  const strip = document.getElementById('modal-preview-strip');
-  strip.className = `modal-preview-strip ${meta.stripClass}`;
-  strip.innerHTML = buildStripHTML(layout);
+  renderModalPreview();
 
   // reset selections
   document.querySelectorAll('.swatch').forEach(s => s.classList.toggle('selected', s.dataset.theme === currentTheme));
@@ -839,6 +878,7 @@ function selectTheme(el) {
   document.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
   el.classList.add('selected');
   currentTheme = el.dataset.theme;
+  renderModalPreview();
 }
 
 function selectStyle(el) {
