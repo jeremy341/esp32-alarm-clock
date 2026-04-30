@@ -18,9 +18,9 @@ public:
 
 private:
   static constexpr uint8_t kButtonCount = 3;
-  static constexpr uint8_t kMenuPin = 32;
-  static constexpr uint8_t kUpPin = 33;
-  static constexpr uint8_t kDownPin = 27;
+  static constexpr uint8_t kMenuPin = 1;
+  static constexpr uint8_t kUpPin = 2;
+  static constexpr uint8_t kDownPin = 3;
   static constexpr unsigned long kDebounceMs = 50UL;
 
   const uint8_t pins_[kButtonCount] = {kMenuPin, kUpPin, kDownPin};
