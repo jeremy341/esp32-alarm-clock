@@ -938,28 +938,40 @@ async function disconnect() {
 }
 
 /* ─── Packet helpers (matches firmware protocol.h) ──────────── */
-function crc16(data) {
+function crc16Ccitt(data) {
   let crc = 0xFFFF;
-  for (const b of data) {
-    crc ^= b;
-    for (let i = 0; i < 8; i++) {
-      crc = (crc & 1) ? ((crc >> 1) ^ 0xA001) : (crc >> 1);
+  for (const byte of data) {
+    crc ^= byte << 8;
+    for (let bit = 0; bit < 8; bit++) {
+      if ((crc & 0x8000) !== 0) {
+        crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+      } else {
+        crc = (crc << 1) & 0xFFFF;
+      }
     }
   }
   return crc;
 }
 
-function buildPacket(cmd, seq, payload) {
-  const pkt = new Uint8Array(6 + payload.length + 2);
-  pkt[0] = 0xAA; pkt[1] = 0x55;
-  pkt[2] = cmd;  pkt[3] = seq & 0xFF;
-  pkt[4] = payload.length >> 8;
-  pkt[5] = payload.length & 0xFF;
-  pkt.set(payload, 6);
-  const crc = crc16(payload);
-  pkt[6 + payload.length]     = crc >> 8;
-  pkt[6 + payload.length + 1] = crc & 0xFF;
-  return pkt;
+function buildPacket(type, payload) {
+  const header = new Uint8Array(4);
+  header[0] = 0x01;
+  header[1] = type;
+  header[2] = payload.length & 0xFF;
+  header[3] = (payload.length >> 8) & 0xFF;
+
+  const crcInput = new Uint8Array(header.length + payload.length);
+  crcInput.set(header, 0);
+  crcInput.set(payload, header.length);
+
+  const crc = crc16Ccitt(crcInput);
+  const packet = new Uint8Array(2 + crcInput.length + 2);
+  packet[0] = 0xAC;
+  packet[1] = 0xDC;
+  packet.set(crcInput, 2);
+  packet[packet.length - 2] = crc & 0xFF;
+  packet[packet.length - 1] = (crc >> 8) & 0xFF;
+  return packet;
 }
 
 /* ─── Push preset ────────────────────────────────────────────── */
@@ -969,12 +981,12 @@ async function pushPreset() {
   const preset = {
     layout:      currentLayout,
     theme:       currentTheme,
-    clock_style: currentStyle,
+    clockStyle:  currentStyle,
   };
 
   const json    = JSON.stringify(preset);
   const payload = new TextEncoder().encode(json);
-  const pkt     = buildPacket(0x01, 0, payload);
+  const pkt     = buildPacket(0x01, payload);
 
   setStatus('info', 'Sending…', true);
   document.getElementById('push-btn').disabled = true;

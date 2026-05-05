@@ -17,6 +17,7 @@ The alarm clock uses a simple binary packet envelope with a UTF-8 JSON payload.
 ## Packet types
 
 - `0x01`: preset configuration JSON
+- `0x02`: time synchronization JSON
 
 ## Preset JSON payload
 
@@ -29,8 +30,22 @@ The alarm clock uses a simple binary packet envelope with a UTF-8 JSON payload.
 }
 ```
 
+## Time Sync JSON payload
+
+```json
+{
+  "year": 2026,
+  "month": 5,
+  "day": 5,
+  "hour": 14,
+  "minute": 30,
+  "second": 0
+}
+```
+
 ## Notes
 
 - The ESP32 persists the selected preset JSON to LittleFS.
+- The current firmware keeps time in software and can be updated over WebSerial.
 - Unknown layout, theme, or clock style identifiers fall back to defaults.
 - CRC uses polynomial `0x1021` and initial value `0xFFFF`.

@@ -1,148 +1,124 @@
 # ESP32-S3 Alarm Clock
 
-Custom-PCB alarm clock built around the `ESP32-S3-WROOM-1`, with an `ILI9341` SPI display, WebSerial control app, persistent settings, and modular firmware.
+Custom alarm clock built around an `ESP32-S3-WROOM-1` on a dedicated PCB, with an `ILI9341` display, battery power path, WebSerial preset control, and persistent on-device configuration.
 
-## What Matters
+## Overview
 
-- `ESP32-S3-WROOM-1` target with USB-C power and data
-- `ILI9341` TFT UI rendered on-device
-- `LittleFS` storage for preset and alarm settings
-- Browser control app over `WebSerial` in Chrome/Edge
-- Three `INPUT_PULLUP` user buttons plus `EN` and `GPIO0`
-- `IP5306` battery/boost stage and `AMS1117-3.3` logic rail
+- `ESP32-S3-WROOM-1`
+- `ILI9341` SPI display
+- `IP5306` power-path, Li-ion charge, and boost stage
+- `LV75533PDBVR` 3.3 V regulator
+- `USBLC6-2SC6` USB ESD protection
+- `2N3904` transistor-driven buzzer stage with `1N4148`
+- `LittleFS` storage for presets and alarms
+- WebSerial browser app for preset upload
 
 ## Hardware
 
-| Block | Part |
-|---|---|
-| MCU | `ESP32-S3-WROOM-1` |
-| Display | `ILI9341` SPI TFT |
-| Power path | `USB-C -> IP5306 -> AMS1117-3.3` |
-| Storage | `LittleFS` |
-| Audio | GPIO buzzer output |
-| Control app | WebSerial browser UI |
+| Block | Part | Role |
+|---|---|---|
+| MCU | `ESP32-S3-WROOM-1` | Main control, USB serial, UI logic |
+| Display | `ILI9341` | TFT clock UI |
+| USB | USB-C receptacle | Power + USB data |
+| ESD | `USBLC6-2SC6` | Protection for `D+` / `D-` |
+| Power manager | `IP5306` | Li-ion charging and 5 V boost |
+| 3.3 V rail | `LV75533PDBVR` | Logic supply for ESP32-S3 and display |
+| Audio driver | `2N3904` + `1N4148` | GPIO-switched buzzer stage |
+| Storage | `LittleFS` | Preset and alarm persistence |
 
-## Power
+## Power Path
 
 ```text
-USB-C VBUS (5V)
+USB-C VBUS
   -> IP5306
-     -> LiPo charging
-     -> 5V boost output
-        -> AMS1117-3.3
-           -> ESP32-S3 + display + logic
+     -> Li-ion charging
+     -> 5V_SYS
+        -> LV75533PDBVR
+           -> 3.3V rail
+              -> ESP32-S3 + ILI9341 + logic
 ```
 
-Keep `100nF` decoupling close to active devices, use `10uF` bulk caps on local rails, and keep the `AMS1117` input/output capacitor loops compact. A continuous ground reference and careful power routing matter more here than any firmware optimization.
+The board uses local `100 nF` and `10 uF` decoupling around the ESP32-S3, regulator, and display rail. Keep those loops tight and maintain a clean shared ground reference across the USB, power, MCU, and display sections.
 
 ## Pin Map
 
-### Display (`ILI9341`)
+### ILI9341
 
-| Signal | GPIO | Note |
-|---|---|---|
-| `SCK` | `GPIO12` | SPI clock, avoid external pull-downs |
-| `MOSI` | `GPIO11` | SPI data out |
-| `MISO` | `GPIO6` | Optional, can be left unused |
-| `CS` | `GPIO10` | Chip select |
-| `DC` | `GPIO9` | Data / command |
-| `RST` | `GPIO14` | Display reset |
+| Signal | GPIO |
+|---|---|
+| `SCK` | `GPIO12` |
+| `MOSI` | `GPIO11` |
+| `MISO` | `GPIO13` |
+| `CS` | `GPIO10` |
+| `DC` | `GPIO9` |
+| `RST` | `GPIO14` |
 
 ### Buttons
 
-| Function | GPIO | Note |
+| Function | GPIO | Notes |
 |---|---|---|
-| `EN` | `EN` | Reset button, active low |
-| `BOOT` | `GPIO0` | Low during reset enters flash mode |
-| `BUTTON 1` | `GPIO1` | `INPUT_PULLUP`, switch to GND |
-| `BUTTON 2` | `GPIO2` | `INPUT_PULLUP`, switch to GND |
-| `BUTTON 3` | `GPIO3` | `INPUT_PULLUP`, switch to GND |
+| `RESET` | `EN` | Active low |
+| `BOOT` | `GPIO0` | Hold low during reset for flash mode |
+| `MENU` | `GPIO1` | `INPUT_PULLUP`, switch to GND |
+| `UP` | `GPIO2` | `INPUT_PULLUP`, switch to GND |
+| `DOWN` | `GPIO5` | `INPUT_PULLUP`, switch to GND |
 
 ### Other Signals
 
-| Signal | GPIO | Note |
+| Signal | GPIO | Notes |
 |---|---|---|
-| `BUZZER` | `GPIO4` | PWM-capable |
-| `USB D-` | `GPIO19` | Reserve for USB only |
-| `USB D+` | `GPIO20` | Reserve for USB only |
+| `BUZZER` | `GPIO4` | Drives transistor stage |
+| `USB D-` | `GPIO19` | USB only |
+| `USB D+` | `GPIO20` | USB only |
 
-## Firmware Layout
+## Firmware Notes
 
 ```text
 firmware/src/
 ├── main.cpp
 ├── core/
-│   ├── app.cpp
-│   └── input.cpp
 ├── display/
-│   └── display.cpp
+├── protocol/
 ├── serial/
-│   └── receiver.cpp
-├── time/
-│   └── clock.cpp
 ├── storage/
-│   ├── config_store.cpp
-│   └── littlefs_manager.cpp
-├── ui/
-│   └── ui_engine.cpp
+├── time/
+└── ui/
 ```
 
-- `core/`: app flow, button events, alarm/menu state
-- `display/`: TFT init and region-based drawing
-- `serial/`: framed packet receive/transmit path
-- `time/`: clock source and sync logic
-- `storage/`: persistent preset/alarm files in LittleFS
-- `ui/`: layout, theme, and clock-style composition
+The firmware is preset-driven: the ESP32 renders the full UI locally, stores the selected preset in `LittleFS`, and only redraws clock-dependent regions during updates.
 
-## Web App
+Recent cleanup in this repo:
 
-```text
-web/
-├── index.html
-└── js/
-    ├── serial.js
-    └── protocol.js
-```
-
-The web app is a local control surface for:
-
-- live preview
-- pushing layout/theme changes
-- setting the alarm
-- syncing time over USB
-
-Serve it locally and open it in Chrome or Edge to use WebSerial.
+- removed the old hard dependency on a DS3231/RTClib clock path
+- switched timekeeping to a lightweight software clock with serial time sync support
+- fixed a stale-snapshot bug in the main loop so alarm/display updates use the current time
+- avoided unnecessary preset re-renders and writes when the selection has not changed
 
 ## Protocol
 
+The WebSerial link uses a compact framed packet with JSON payloads:
+
 ```text
-[0xAA][0x55][CMD][SEQ][LEN][PAYLOAD][CRC]
+[MAGIC0][MAGIC1][VERSION][TYPE][LEN_LO][LEN_HI][PAYLOAD][CRC16]
 ```
 
-- payloads are JSON
-- framing is binary
-- CRC16 protects the packet
+Currently used packet types:
 
-Core commands:
-
-- `PING`
-- `PRESET`
-- `SET_TIME`
-- `SET_ALARM`
-- `ACK / NACK`
+- `0x01`: preset selection
+- `0x02`: set time
 
 ## Storage
-
-LittleFS persists the active device configuration:
 
 ```text
 /preset.json
 /alarm.json
 ```
 
-## Getting Started
+## Web App
 
-Firmware:
+The browser app is served from `web/` and is intended for Chromium-based browsers with WebSerial support. Its current main path is preset selection and upload; the firmware also supports serial time sync at the protocol level.
+
+## Getting Started
 
 ```bash
 cd firmware
@@ -151,20 +127,12 @@ pio run -t upload
 pio run -t uploadfs
 ```
 
-Web:
-
 ```bash
 cd web
 python -m http.server 8000
 ```
 
-Then open `http://localhost:8000` in Chrome or Edge.
-
-## Notes
-
-- This PCB has **no dedicated RTC module**.
-- Time is intended to come from `WiFi/NTP` or `WebSerial` sync.
-- If any firmware paths still reference the older RTC-based design, they should be treated as migration work rather than the final hardware model.
+Then open [http://localhost:8000](http://localhost:8000) in Chrome or Edge.
 
 ## License
 

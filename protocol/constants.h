@@ -9,6 +9,7 @@ static constexpr uint8_t kMagic0 = 0xAC;
 static constexpr uint8_t kMagic1 = 0xDC;
 static constexpr uint8_t kVersion = 1;
 static constexpr uint8_t kPacketTypePresetConfig = 0x01;
+static constexpr uint8_t kPacketTypeSetTime = 0x02;
 
 static constexpr size_t kMaxJsonPayloadBytes = 384;
 static constexpr size_t kPacketOverheadBytes = 8;
@@ -16,6 +17,6 @@ static constexpr size_t kMaxPacketBytes = kMaxJsonPayloadBytes + kPacketOverhead
 
 static constexpr char kConfigFilePath[] = "/preset.json";
 static constexpr char kAlarmFilePath[] = "/alarm.json";
-static constexpr char kDeviceName[] = "ESP32 Alarm Clock";
+static constexpr char kDeviceName[] = "ESP32-S3 Alarm Clock";
 
 }  // namespace alarm_clock_protocol

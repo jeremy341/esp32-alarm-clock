@@ -33,6 +33,23 @@ bool decodeSelectionPayload(const char* json, ui::PresetSelection& selection) {
   return ui::normalizeSelection(selection);
 }
 
+bool decodeTimePayload(const char* json, ClockSnapshot& snapshot) {
+  StaticJsonDocument<192> document;
+  const DeserializationError error = deserializeJson(document, json);
+
+  if (error) {
+    return false;
+  }
+
+  snapshot.year = document[alarm_clock_format::kFieldYear] | 0;
+  snapshot.month = document[alarm_clock_format::kFieldMonth] | 0;
+  snapshot.day = document[alarm_clock_format::kFieldDay] | 0;
+  snapshot.hour = document[alarm_clock_format::kFieldHour] | 0;
+  snapshot.minute = document[alarm_clock_format::kFieldMinute] | 0;
+  snapshot.second = document[alarm_clock_format::kFieldSecond] | 0;
+  return true;
+}
+
 }  // namespace
 
 void App::begin() {
@@ -66,26 +83,28 @@ void App::loop() {
     receiver_.consumePacket();
   }
 
+  const bool clockChanged = clock_.update();
   const ClockSnapshot snapshot = clock_.snapshot();
   handleButtonInput(snapshot);
 
-  if (clock_.update() && ready_) {
+  if (clockChanged && ready_) {
     processAlarm(snapshot);
-
-    if (menuState_ == MenuState::Clock) {
-      display_.updateClock(snapshot, false, &alarm_, alarmTriggered_);
-    } else {
-      renderAlarmMenu(snapshot);
-    }
+    refreshVisibleScreen(snapshot, false);
   }
 }
 
 void App::applySelection(const ui::PresetSelection& selection, bool persistSelection) {
-  selection_ = selection;
-  ui::normalizeSelection(selection_);
+  ui::PresetSelection normalized = selection;
+  ui::normalizeSelection(normalized);
+  const bool selectionChanged = !ui::equals(selection_, normalized);
+  selection_ = normalized;
 
-  if (persistSelection) {
+  if (persistSelection && selectionChanged) {
     storage::savePresetSelection(selection_);
+  }
+
+  if (!selectionChanged && ready_) {
+    return;
   }
 
   display_.setPreset(ui::resolve(selection_));
@@ -183,6 +202,14 @@ void App::renderAlarmMenu(const ClockSnapshot& snapshot) {
   }
 }
 
+void App::refreshVisibleScreen(const ClockSnapshot& snapshot, bool forceClock) {
+  if (menuState_ == MenuState::Clock) {
+    display_.updateClock(snapshot, forceClock, &alarm_, alarmTriggered_);
+  } else {
+    renderAlarmMenu(snapshot);
+  }
+}
+
 void App::saveAlarmSchedule() {
   if (storage::saveAlarmSchedule(alarm_)) {
     Serial.println("Alarm schedule saved.");
@@ -206,16 +233,36 @@ void App::processAlarm(const ClockSnapshot& snapshot) {
 }
 
 void App::handlePacket(const serial_protocol::Packet& packet) {
-  if (packet.type != alarm_clock_protocol::kPacketTypePresetConfig) {
-    Serial.println("Ignoring unsupported packet type.");
-    return;
-  }
+  switch (packet.type) {
+    case alarm_clock_protocol::kPacketTypePresetConfig: {
+      ui::PresetSelection incoming = selection_;
+      if (!decodeSelectionPayload(packet.payload, incoming)) {
+        Serial.println("Rejected malformed preset payload.");
+        return;
+      }
 
-  ui::PresetSelection incoming = selection_;
-  if (!decodeSelectionPayload(packet.payload, incoming)) {
-    Serial.println("Rejected malformed preset payload.");
-    return;
-  }
+      applySelection(incoming, true);
+      return;
+    }
 
-  applySelection(incoming, true);
+    case alarm_clock_protocol::kPacketTypeSetTime: {
+      ClockSnapshot incoming{};
+      if (!decodeTimePayload(packet.payload, incoming) ||
+          !clock_.setDateTime(incoming.year, incoming.month, incoming.day,
+                              incoming.hour, incoming.minute, incoming.second)) {
+        Serial.println("Rejected malformed time payload.");
+        return;
+      }
+
+      const ClockSnapshot snapshot = clock_.snapshot();
+      processAlarm(snapshot);
+      refreshVisibleScreen(snapshot, true);
+      Serial.println("Time synchronized.");
+      return;
+    }
+
+    default:
+      Serial.println("Ignoring unsupported packet type.");
+      return;
+  }
 }

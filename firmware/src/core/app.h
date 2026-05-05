@@ -26,6 +26,7 @@ private:
   void renderAlarmMenu(const ClockSnapshot& snapshot);
   void saveAlarmSchedule();
   void processAlarm(const ClockSnapshot& snapshot);
+  void refreshVisibleScreen(const ClockSnapshot& snapshot, bool forceClock);
 
   ClockService clock_;
   DisplayManager display_;
