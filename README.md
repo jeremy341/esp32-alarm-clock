@@ -1,6 +1,8 @@
 # ESP32-S3 Alarm Clock
 
-Custom alarm clock built around an `ESP32-S3-WROOM-1` on a dedicated PCB, with an `ILI9341` display, battery power path, WebSerial preset control, and persistent on-device configuration.
+Custom alarm clock built around an `ESP32-S3-WROOM-1` on a dedicated PCB, with an `ILI9341` display, battery powerer , Website , and USB C for both flashing and charging. The website allows the user to choose from existing presets and change the color of them, to change the UI.
+I created this Project as a birthday gift for my little sister as in the morning i always wake her up and she doesnt have a alarm, I also wanted to gain new skills as i want to become an enginier and builduing up my CV.
+
 
 ## Overview
 
@@ -12,6 +14,24 @@ Custom alarm clock built around an `ESP32-S3-WROOM-1` on a dedicated PCB, with a
 - `2N3904` transistor-driven buzzer stage with `1N4148`
 - `LittleFS` storage for presets and alarms
 - WebSerial browser app for preset upload
+
+## IMAGES
+
+<img width="1171" height="762" alt="image" src="https://github.com/user-attachments/assets/4c89c337-9c52-4df0-a836-1c3ce4735979" />  
+
+<img width="1014" height="848" alt="image" src="https://github.com/user-attachments/assets/3b6c2eb8-3e09-4b4c-b349-f91c0d51f3b8" />
+
+<img width="1025" height="588" alt="image" src="https://github.com/user-attachments/assets/c4a9b6df-e291-4fa9-b111-0b83a14a283a" />
+
+<img width="1602" height="882" alt="image" src="https://github.com/user-attachments/assets/e7613f12-3904-498b-8f1a-24e8ad1e0358" />
+
+<img width="1557" height="950" alt="image" src="https://github.com/user-attachments/assets/c613a602-3d31-49a3-b2f5-1046ed718bbd" />
+
+<img width="2559" height="1395" alt="image" src="https://github.com/user-attachments/assets/08f149ca-8b9a-4568-9a29-83624bdc535c" />
+
+
+
+
 
 ## Hardware
 
@@ -38,7 +58,7 @@ USB-C VBUS
               -> ESP32-S3 + ILI9341 + logic
 ```
 
-The board uses local `100 nF` and `10 uF` decoupling around the ESP32-S3, regulator, and display rail. Keep those loops tight and maintain a clean shared ground reference across the USB, power, MCU, and display sections.
+
 
 ## Pin Map
 
@@ -52,6 +72,8 @@ The board uses local `100 nF` and `10 uF` decoupling around the ESP32-S3, regula
 | `CS` | `GPIO10` |
 | `DC` | `GPIO9` |
 | `RST` | `GPIO14` |
+| `GND` | `GND` |
+| `VCC` | `3.3V` |
 
 ### Buttons
 
@@ -63,7 +85,7 @@ The board uses local `100 nF` and `10 uF` decoupling around the ESP32-S3, regula
 | `UP` | `GPIO2` | `INPUT_PULLUP`, switch to GND |
 | `DOWN` | `GPIO5` | `INPUT_PULLUP`, switch to GND |
 
-### Other Signals
+### Other PINS
 
 | Signal | GPIO | Notes |
 |---|---|---|
@@ -71,52 +93,11 @@ The board uses local `100 nF` and `10 uF` decoupling around the ESP32-S3, regula
 | `USB D-` | `GPIO19` | USB only |
 | `USB D+` | `GPIO20` | USB only |
 
-## Firmware Notes
 
-```text
-firmware/src/
-├── main.cpp
-├── core/
-├── display/
-├── protocol/
-├── serial/
-├── storage/
-├── time/
-└── ui/
-```
-
-The firmware is preset-driven: the ESP32 renders the full UI locally, stores the selected preset in `LittleFS`, and only redraws clock-dependent regions during updates.
-
-Recent cleanup in this repo:
-
-- removed the old hard dependency on a DS3231/RTClib clock path
-- switched timekeeping to a lightweight software clock with serial time sync support
-- fixed a stale-snapshot bug in the main loop so alarm/display updates use the current time
-- avoided unnecessary preset re-renders and writes when the selection has not changed
-
-## Protocol
-
-The WebSerial link uses a compact framed packet with JSON payloads:
-
-```text
-[MAGIC0][MAGIC1][VERSION][TYPE][LEN_LO][LEN_HI][PAYLOAD][CRC16]
-```
-
-Currently used packet types:
-
-- `0x01`: preset selection
-- `0x02`: set time
-
-## Storage
-
-```text
-/preset.json
-/alarm.json
-```
 
 ## Web App
 
-The browser app is served from `web/` and is intended for Chromium-based browsers with WebSerial support. Its current main path is preset selection and upload; the firmware also supports serial time sync at the protocol level.
+The browser app is served from `web/` and is intended for Chrome or firefox, browsers with WebSerial support. Its function is choosing of custom ui and flashing `ESP32`.
 
 ## Getting Started
 
@@ -136,4 +117,4 @@ Then open [http://localhost:8000](http://localhost:8000) in Chrome or Edge.
 
 ## License
 
-MIT
+This project is open-source under the **MIT License**. Feel free to fork, modify, and build your own!
