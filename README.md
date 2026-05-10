@@ -13,7 +13,7 @@ I created this Project as a birthday gift for my little sister as in the morning
 - `USBLC6-2SC6` USB ESD protection
 - `2N3904` transistor-driven buzzer stage with `1N4148`
 - `LittleFS` storage for presets and alarms
-- WebSerial browser app for preset upload
+- `WebSerial` browser app for preset upload
 
 ## IMAGES
 ![Fusion 360](https://github.com/jeremy341/esp32-alarm-clock/blob/main/images/Case%20Front.png)
