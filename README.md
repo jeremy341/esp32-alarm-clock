@@ -153,4 +153,6 @@ Then open [http://localhost:8000](http://localhost:8000) in Chrome or Edge.
 
 ## License
 
-This project is open-source under the **MIT License**. Feel free to , modify, and build your own!
+This project is licensed under the **MIT License**. This means you are free to use, modify, and distribute the software and hardware designs, as long as you include the original copyright notice. 
+
+See the [LICENSE](LICENSE) file for the full text.
