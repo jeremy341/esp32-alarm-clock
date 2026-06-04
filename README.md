@@ -151,7 +151,7 @@ Then open [http://localhost:8000](http://localhost:8000) in Chrome or Edge.
 *\*Note: 1 often just shows the minimum quantity availaiable so its just the minimum included in a single pack price, also the $0.00 are duplicates so they are alredy included in the pack of similar items such as the buttons.*
 
 
-This Project was aided by Ai in the communication between the firmware and the webserial and the creation of the webapp.
+This Project was aided by Ai in the communication between the firmware and the webserial and the creation of the webapp, the rest is self written.
 
 ## License
 
